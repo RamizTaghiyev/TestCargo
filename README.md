@@ -1,70 +1,132 @@
-# Getting Started with Create React App
+# SmartCargo Auth Architecture (Auth0 + Role-Based UX)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This implementation delivers a production-grade auth flow with:
 
-## Available Scripts
+- Native SmartCargo auth entry screens (`/account-selection`, `/admin/login`, `/admin/signup`, `/courier/login`)
+- Role-based route guards for admin vs courier
+- Remember-me persistent session handling
+- Callback route handling (`/auth/callback`) with post-login route restoration
+- Secure backend endpoint for admin-created courier accounts via Auth0 Management API
 
-In the project directory, you can run:
+## 1) Environment variables
 
-### `npm start`
+### Frontend `.env`
+Copy `.env.example` to `.env`.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- `REACT_APP_AUTH0_DOMAIN`
+- `REACT_APP_AUTH0_CLIENT_ID`
+- `REACT_APP_AUTH0_AUDIENCE`
+- `REACT_APP_AUTH0_ADMIN_CONNECTION`
+- `REACT_APP_AUTH0_COURIER_CONNECTION`
+- `REACT_APP_AUTH0_ROLE_CLAIM_NAMESPACE`
+- `REACT_APP_LOGOUT_RETURN_TO`
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+> **Security**: no `REACT_APP_AUTH0_CLIENT_SECRET` or `VITE_AUTH0_CLIENT_SECRET` is used. Client secret is server-only.
 
-### `npm test`
+### Backend `server/.env`
+Copy `server/.env.example` to `server/.env`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- `AUTH0_DOMAIN`
+- `AUTH0_AUDIENCE`
+- `AUTH0_ROLE_CLAIM_NAMESPACE`
+- `AUTH0_M2M_CLIENT_ID`
+- `AUTH0_CLIENT_SECRET` (server-only secret)
+- `AUTH0_SPA_CLIENT_ID`
+- `AUTH0_COURIER_CONNECTION`
+- `AUTH0_COURIER_ROLE_ID`
 
-### `npm run build`
+## 2) Auth0 tenant configuration checklist
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **SPA Application**
+   - Application Type: Single Page App
+   - Allowed Callback URLs:
+     - `http://localhost:3000/auth/callback`
+   - Allowed Logout URLs:
+     - `http://localhost:3000/account-selection`
+   - Allowed Web Origins:
+     - `http://localhost:3000`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **API**
+   - Identifier: `https://smartcargo.com/api/smartcargoapi`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Database Connections**
+   - `smartcargo-admin-db`: sign-up + login allowed
+   - `smartcargo-courier-db`: login used by app UX, do not expose public courier sign-up in UI
 
-### `npm run eject`
+4. **Roles**
+   - `admin`
+   - `courier`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+5. **Post-Login Action for claims**
+   Add Auth0 Action to inject roles in a namespaced claim:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+   ```js
+   exports.onExecutePostLogin = async (event, api) => {
+     const namespace = 'https://smartcargo.com';
+     const roles = (event.authorization || {}).roles || [];
+     api.idToken.setCustomClaim(`${namespace}/roles`, roles);
+     api.accessToken.setCustomClaim(`${namespace}/roles`, roles);
+   };
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+6. **M2M Application (for backend provisioning)**
+   - Authorized for Auth0 Management API scopes:
+     - `create:users`
+     - `update:users`
+     - `read:roles`
+     - `create:role_members`
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 3) Backend endpoint for courier provisioning
 
-## Learn More
+`POST /api/admin/couriers`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Protected by JWT validation + admin role requirement.
+- Uses Auth0 Management API server-side only.
+- Creates user in courier connection, sets app metadata, and assigns courier role.
+- Optionally triggers password reset/setup email.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Request payload:
 
-### Code Splitting
+```json
+{
+  "fullName": "Jamie Courier",
+  "email": "jamie@smartcargo.com",
+  "temporaryPassword": "TempPassword123!",
+  "phone": "+15555550123",
+  "employeeId": "EMP-4421",
+  "vehicleId": "VAN-91",
+  "sendPasswordResetEmail": true
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 4) Admin vs courier flow
 
-### Analyzing the Bundle Size
+- **Admin signup/login**
+  - Starts from in-app pages (`/admin/signup`, `/admin/login`)
+  - Uses admin connection via Auth0 redirect params
+  - Post-login redirect to intended admin route/dashboard
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- **Courier login-only**
+  - Starts from `/courier/login`
+  - Uses courier connection
+  - No courier sign-up route or CTA in app
+  - Courier credentials are created by admin through backend endpoint
 
-### Making a Progressive Web App
+## 5) Running locally
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+npm install
+npm run server
+npm start
+```
 
-### Advanced Configuration
+## 6) Test checklist
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+1. Admin sign-up from `/admin/signup`.
+2. Admin sign-in from `/admin/login`.
+3. Admin can open `/admin/couriers/create` and create courier.
+4. Courier cannot self-register from app (no sign-up page).
+5. Courier sign-in from `/courier/login` with admin-provisioned credentials.
+6. Refresh on protected route preserves session when remember-me is enabled.
+7. Wrong role cannot access other role routes.
+8. Logout returns to `/account-selection` without protected data flash.

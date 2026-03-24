@@ -1,0 +1,65 @@
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, #eef4ff, #f7f9fc);
+  padding: 2rem;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e6ebf3;
+  box-shadow: 0 15px 35px rgba(16, 42, 82, 0.08);
+  padding: 2rem;
+}
+
+.auth-card--centered { text-align: center; }
+.auth-brand { font-size: .875rem; font-weight: 700; color: #5b76f7; letter-spacing: .08em; text-transform: uppercase; }
+.auth-card h1 { margin: .5rem 0; font-size: 1.65rem; color: #172b4d; }
+.auth-card p { color: #5e6c84; margin-top: 0; }
+.auth-grid { display: grid; gap: 1rem; }
+.auth-role-card {
+  border: 1px solid #d5deeb;
+  border-radius: 14px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all .2s;
+  background: #fff;
+}
+.auth-role-card:hover { border-color: #5b76f7; transform: translateY(-1px); }
+.auth-form { display: grid; gap: .9rem; }
+.auth-form label { display: grid; gap: .3rem; color: #172b4d; font-weight: 600; font-size: .9rem; }
+.auth-form input {
+  border: 1px solid #cbd6e2;
+  border-radius: 10px;
+  padding: .7rem .8rem;
+  font-size: .95rem;
+}
+.auth-actions { display: flex; gap: .65rem; align-items: center; justify-content: space-between; }
+.btn-primary, .btn-secondary {
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  padding: .65rem .95rem;
+  cursor: pointer;
+}
+.btn-primary { background: #3559e0; color: #fff; }
+.btn-primary:disabled { opacity: .65; cursor: wait; }
+.btn-secondary { background: #eef2ff; color: #304dd3; }
+.inline-link { color: #3559e0; text-decoration: none; font-weight: 600; }
+.text-muted { color: #7b879c; font-size: .9rem; }
+.error-box { background: #fff2f2; color: #b3261e; border: 1px solid #f6c5c2; border-radius: 10px; padding: .65rem .75rem; font-size: .9rem; }
+.success-box { background: #f0fff4; color: #236b3a; border: 1px solid #b9e8c9; border-radius: 10px; padding: .65rem .75rem; font-size: .9rem; }
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 4px solid #d6def6;
+  border-top-color: #3559e0;
+  margin: 0 auto 1rem;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
