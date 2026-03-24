@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Menu, Map, CheckCircle, DollarSign, Star, Package, Navigation } from 'lucide-react';
 import './CourierDashboard.css';
 
-export default function CourierDashboard() {
+export default function CourierDashboard({ userEmail }) {
     const [deliveries, setDeliveries] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -45,7 +45,7 @@ export default function CourierDashboard() {
             {/* Main Scrollable Content */}
             <main className="dashboard-content">
                 <section className="welcome-header">
-                    <h2>Welcome, laslanova16179@gmail.com!</h2>
+                    <h2>Welcome, {userEmail || 'courier'}!</h2>
                     <p>Here are your available shipments</p>
                 </section>
 
